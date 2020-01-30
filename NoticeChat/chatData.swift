@@ -26,7 +26,8 @@ class observer : ObservableObject{
             for i in snap!.documentChanges {
                 
                 if i.type == .added && i.document.get("msg") != nil {
-                    let msgData = datatype(id: i.document.documentID, type: 0, msg: i.document.get("msg") as! String)
+                    let date = (i.document.get("date") as! Timestamp).dateValue()
+                    let msgData = datatype(id: i.document.documentID, fromUID: i.document.get("fromUID") as! String, date: date as Date, msg: i.document.get("msg") as! String, type: 0)
                     self.data.append(msgData)
                 }
             }
@@ -42,6 +43,8 @@ class observer : ObservableObject{
  */
 struct datatype: Identifiable {
     var id: String
-    var type: Int8
+    var fromUID: String
+    var date: Date
     var msg : String
+    var type: Int
 }

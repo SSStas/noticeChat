@@ -21,7 +21,7 @@ struct chatView: View {
             List {
                 ForEach(self.datas.data) { i in
                     if i.type == 0 {
-                        Text(i.msg)
+                        textBubble(data: i)
                     }
                 }
                 .onDelete { (index) in
@@ -63,7 +63,7 @@ struct chatView: View {
         let db = Firestore.firestore()
         let msg = db.collection("group1").document()
         
-        msg.setData(["id":msg.documentID, "msg":input]) { (err) in
+        msg.setData(["fromUID":self.user.user?.uid ?? "", "date":Date(), "msg":input]) { (err) in
             if err != nil {
                 print("*** LOCAL ERROR *** \n\((err)!)")
                 return
@@ -72,6 +72,7 @@ struct chatView: View {
             self.msg = ""
         }
     }
+    
 }
 
 struct optionsView: View {

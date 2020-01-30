@@ -66,7 +66,6 @@ struct createAccountView: View {
             
             Button(action: {
                 self.presentationMode.wrappedValue.dismiss()
-                //self.user.setUser(login: self.login, email: self.email, password: self.password)
                 self.signUp()
             }){
                 Text("Sign in")
