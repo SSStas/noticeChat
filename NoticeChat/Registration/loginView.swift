@@ -46,7 +46,6 @@ struct loginView: View {
                 .padding(.horizontal, 10.0)
                 
                 Button(action: {
-                    //self.user.setUser(login: "", email: self.email, password: self.password)
                     self.signIn()
                 }){
                     Text("Enter")

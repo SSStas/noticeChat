@@ -32,7 +32,7 @@ class userProfile: ObservableObject {
                     }
                     // Get user value
                     if let doc = snap {
-                        self.user = User(uid: user.uid, email: user.email, username: doc.get("username") as? String ?? "", groups: doc.get("groups") as? [String] ?? [])
+                        self.user = User(uid: user.uid, email: user.email, username: doc.get("username") as? String ?? "")
                     } else {
                         print("Document does not exist")
                     }
@@ -76,12 +76,20 @@ struct User {
     var uid: String
     var username: String
     var email: String?
-    var groups : [String]
+    //var updating: Bool = true
     
-    init(uid: String, email: String?, username: String, groups: [String]) {
+    init(uid: String, email: String?, username: String) {
         self.uid = uid
         self.email = email
         self.username = username
-        self.groups = groups
     }
 }
+
+
+// create a dictionary [id of group(string) : last update(date)]
+/*let g = doc.get("groups") as? [String] ?? []
+var d: [Date] = []
+for item in doc.get("dates") as? [Any] ?? [] {
+    d.append((item as! Timestamp).dateValue() as Date)
+}
+self.user = User(uid: user.uid, email: user.email, username: doc.get("username") as? String ?? "", groups: (g.count == 0 || g.count != d.count) ? [:] : Dictionary(uniqueKeysWithValues: zip(g, d))*/
