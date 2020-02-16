@@ -18,7 +18,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if self.user.user != nil {
-                mainView()
+                mainView(datas: groupObserver(uid: self.user.user!.uid))
             } else {
                 loginView()
             }

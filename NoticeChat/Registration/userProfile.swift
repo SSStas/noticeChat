@@ -27,6 +27,7 @@ class userProfile: ObservableObject {
                 let db = Firestore.firestore().collection("users").document(userID)
                 db.getDocument { (snap, err) in
                     if err != nil {
+                        self.user = nil
                         print("*** LOCAL ERROR *** \n\(err!.localizedDescription)")
                         return
                     }
@@ -34,6 +35,7 @@ class userProfile: ObservableObject {
                     if let doc = snap {
                         self.user = User(uid: user.uid, email: user.email, username: doc.get("username") as? String ?? "")
                     } else {
+                        self.user = nil
                         print("Document does not exist")
                     }
                 }
@@ -76,7 +78,6 @@ struct User {
     var uid: String
     var username: String
     var email: String?
-    //var updating: Bool = true
     
     init(uid: String, email: String?, username: String) {
         self.uid = uid
@@ -84,12 +85,3 @@ struct User {
         self.username = username
     }
 }
-
-
-// create a dictionary [id of group(string) : last update(date)]
-/*let g = doc.get("groups") as? [String] ?? []
-var d: [Date] = []
-for item in doc.get("dates") as? [Any] ?? [] {
-    d.append((item as! Timestamp).dateValue() as Date)
-}
-self.user = User(uid: user.uid, email: user.email, username: doc.get("username") as? String ?? "", groups: (g.count == 0 || g.count != d.count) ? [:] : Dictionary(uniqueKeysWithValues: zip(g, d))*/

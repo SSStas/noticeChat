@@ -14,13 +14,17 @@ struct createAccountView: View {
     @State private var username: String = ""
     @State private var email: String = ""
     @State private var password: String = ""
+    @State private var error: String?
+    @State var value : CGFloat = 0
     @EnvironmentObject var user: userProfile
     @Environment(\.presentationMode) var presentationMode
     
     func signUp() {
+        self.error = nil
+        
         self.user.signUp(email: self.email, password: self.password) { (res, err) in
             if let error = err {
-                print("*** LOCAL ERROR *** \n\((error.localizedDescription))")
+                self.error = "\(error.localizedDescription)"
                 return
             }
             
@@ -28,9 +32,9 @@ struct createAccountView: View {
             let db = Firestore.firestore()
             let msg = db.collection("users").document(res!.user.uid)
             
-            msg.setData(["username":self.username, "groups": []]) { (err) in
+            msg.setData(["username":self.username]) { (err) in
                 if err != nil {
-                    print("*** LOCAL ERROR *** \n\((err)!)")
+                    self.error = "\(err!.localizedDescription)"
                     return
                 }
             }
@@ -47,6 +51,15 @@ struct createAccountView: View {
                 .font(.system(size: 30))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20.0)
+            
+            if self.error != nil {
+                Text("\(self.error!)")
+                .font(.system(size: 20))
+                .lineLimit(nil)
+                .foregroundColor(Color.red)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20.0)
+            }
             
             VStack(alignment: .center) {
                 TextField("Username", text: $username)
@@ -65,12 +78,31 @@ struct createAccountView: View {
             .padding(.horizontal, 10.0)
             
             Button(action: {
-                self.presentationMode.wrappedValue.dismiss()
                 self.signUp()
+                //self.presentationMode.wrappedValue.dismiss()
             }){
                 Text("Sign in")
                     .font(.system(size: 20))
             }
+        }
+        .offset(y: -self.value)
+        .animation(.spring())
+        .onAppear(perform: {
+            self.forKeyboard()
+        })
+    }
+    
+    func forKeyboard() {
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { (noti) in
+            let value = noti.userInfo![UIResponder.keyboardFrameEndUserInfoKey] as! CGRect
+            let height = value.height
+            
+            self.value = height - 20.0
+        }
+        
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { (noti) in
+            
+            self.value = 0
         }
     }
 }

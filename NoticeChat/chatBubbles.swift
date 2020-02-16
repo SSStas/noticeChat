@@ -12,8 +12,9 @@ import FirebaseFirestore
 struct textBubble: View {
     @EnvironmentObject var user: userProfile
     @State var data: datatype
-    @State var name: String = "§ User does not found"
+    @Binding var groupID: String
     @State var isMarked: Bool
+    @State var name: String = "§ User does not found"
     
     var body: some View {
         HStack {
@@ -24,7 +25,7 @@ struct textBubble: View {
             
             VStack(alignment: self.data.fromUID == self.user.user?.uid ? .trailing : .leading) {
                 HStack {
-                    if self.data.type[2] == "n" {
+                    if self.data.type[1] == "n" && self.user.user != nil && self.user.user!.uid == self.data.fromUID {
                         VStack {
                             Spacer()
                             Circle()
@@ -47,12 +48,13 @@ struct textBubble: View {
                             .font(.system(size: 22))
                             .foregroundColor(Color.white)
                             .padding(.all, 7.0)
+
                     }
                     .background(self.isMarked ? Color.purple : Color.blue)
                     .cornerRadius(10)
                 }
                 
-                Text((self.data.type[1] == "a" ? "Added" : "Update") + " \(self.getDate(date: self.data.date))")
+                Text((self.data.type[1] != "u" ? "Added" : "Update") + " \(self.getDate(date: self.data.date))")
                 .font(.system(size: 10))
                 .multilineTextAlignment(self.data.fromUID == self.user.user?.uid ? .trailing : .leading)
                 .padding(.all, 5.0)
@@ -62,6 +64,22 @@ struct textBubble: View {
                 Spacer()
             }
         }
+        .padding(.horizontal)
+        .padding(.vertical, 3.0)
+        .onAppear(perform: {
+            if self.data.type[1] == "n" && self.user.user != nil && self.user.user!.uid != self.data.fromUID {
+                let db =  Firestore.firestore().collection("\(self.groupID)").document(self.data.id)
+                db.updateData([
+                    "type": self.data.type[0] + "a",
+                ]) { err in
+                    if err != nil {
+                        print("*** LOCAL ERROR *** \n\((err?.localizedDescription)!)")
+                        return
+                    }
+                }
+                self.data.type = self.data.type[0] + "a"
+            }
+        })
     }
     
     func getUsername(uid: String) -> String {
@@ -81,6 +99,8 @@ struct textBubble: View {
         return format.string(from: date)
     }
 }
+
+
 
 struct groupBubble: View {
     @EnvironmentObject var user: userProfile
@@ -130,13 +150,13 @@ struct groupBubble: View {
         db.getDocument { (doc, err) in
             if let document = doc, document.exists {
                 let name = document.get("username") as! String
-                if message!.type[0] == "0" {
+                if message!.type[0] == "m" {
                     if message!.msg.count > 50 {
                         self.text = name + ": " + String(message!.msg.prefix(50)) + "..."
                     } else {
                         self.text = name + ": " + message!.msg
                     }
-                } else if message!.type[0] == "1" {
+                } else if message!.type[0] == "i" {
                     self.text = name + ": " + "Photo"
                 }
             }
@@ -163,4 +183,82 @@ struct groupBubble: View {
         }
         return extraStr + format.string(from: date!)
     }
+}
+
+
+struct CustomActionSheet : View {
+    
+    @Binding var toUID: String?
+    @State var toUsername: String?
+    @State var groupID: String
+    @State var author: String
+    @State var usernamesList = [usersNames]()
+    
+    var body : some View {
+        
+        VStack {
+            Text("Send to a specific person")
+                .font(.title)
+                .padding()
+            Text("Choosed now: \(self.toUID != nil ? self.toUsername ?? "§ User does not found" : "Everyone")")
+                .font(.body)
+            if self.usernamesList.count > 0 {
+                List(self.usernamesList) { uid in
+                    Button(action: {
+                        self.toUID = uid.id
+                        self.toUsername = uid.username
+                    }) {
+                        Text(uid.username)
+                    }
+                }
+            } else {
+                Spacer()
+                Text("You haven't no one to send message in this group!")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .padding()
+                Spacer()
+            }
+            Button(action: {
+                self.toUID = nil
+                self.toUsername = "Everyone"
+            }) {
+                Text("Send to all")
+            }
+            .padding()
+        }
+        .onAppear(perform: {
+            self.getGroupUIDs()
+        })
+    }
+    
+    func getGroupUIDs() {
+        self.usernamesList.removeAll()
+        let db = Firestore.firestore()
+        db.collection("info").document(self.groupID).getDocument() { (doc, err) in
+            if let document = doc, document.exists {
+                let usersID = document.get("usersID") as! [String]
+                for i in 0..<usersID.count {
+                    db.collection("users").document(usersID[i]).getDocument() { (doc2, err) in
+                        if let document2 = doc2, document2.exists {
+                            if usersID[i] != self.author {
+                                let name = document2.get("username") as! String
+                                self.usernamesList.append(usersNames(id: usersID[i], username: name))
+                                if usersID[i] == self.toUID {
+                                    self.toUsername = name
+                                }
+                            }
+                        } else if usersID[i] == self.toUID {
+                            self.toUsername = "§ User does not found"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct usersNames: Identifiable {
+    var id: String
+    var username: String
 }
