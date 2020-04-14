@@ -79,13 +79,15 @@ struct createAccountView: View {
             
             Button(action: {
                 self.signUp()
-                //self.presentationMode.wrappedValue.dismiss()
             }){
                 Text("Sign in")
-                    .font(.system(size: 20))
+                    .font(.system(size: 25))
             }
+            
+            Spacer()
+                .frame(height: self.value)
+            
         }
-        .offset(y: -self.value)
         .animation(.spring())
         .onAppear(perform: {
             self.forKeyboard()

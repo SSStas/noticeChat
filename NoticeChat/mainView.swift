@@ -22,39 +22,27 @@ struct chatView: View {
     @State var value : CGFloat = 0
     @State var isAdded = false
     @State var isScrolling = true
+    @State var rotating = true
     
     @State var choosen: String?
     @State var toUID: String?
     @State var showSheet = false
+    @State var choosenID = ""
+    @State var choosenFromUID = ""
+    @State var showActionSheet = false
     
     var body: some View {
         VStack {
-            CustomScrollView(scrollToEnd: self.isScrolling) {
-                Group {
-                    ForEach((1...30).reversed(), id: \.self) { _ in
-                        Text("")
-                    }
-                    ForEach(self.datas.data) { i in
-                        if i.type[0] == "m" {
-                            textBubble(data: i, groupID: self.$groupID, isMarked: self.author == i.fromUID)
-                                .contextMenu{
-                                    Text("\(i.msg)")
-                                    if self.user.user != nil && i.fromUID == self.user.user!.uid {
-                                        Button(action: { self.choosen = i.id }) {
-                                            HStack(spacing: 12) {
-                                                Text("Rewrite")
-                                                Image(systemName: "square.and.pencil")
-                                            }
-                                        }
-                                        Button(action: { self.deleteData(id: i.id) }) {
-                                            HStack(spacing: 12) {
-                                                Text("Delete")
-                                                Image(systemName: "trash")
-                                            }
-                                        }
-                                    }
-                              }
-                        }
+            List {
+                ForEach(self.datas.data) { i in
+                    if i.type[0] == "m" {
+                        textBubble(data: i, groupID: self.$groupID, isMarked: self.author == i.fromUID)
+                            .rotationEffect(.degrees(180))
+                            .onTapGesture(count: 2) {
+                                self.choosenID = i.id
+                                self.choosenFromUID = i.fromUID
+                                self.showActionSheet.toggle()
+                            }
                     }
                 }
             }
@@ -62,7 +50,7 @@ struct chatView: View {
                 UITableView.appearance().separatorStyle = .none
             }.onDisappear {
                 UITableView.appearance().separatorStyle = .singleLine
-            }
+            }.rotationEffect(.degrees(180))
             
             // show the choosen message
             if self.choosen != nil {
@@ -91,6 +79,7 @@ struct chatView: View {
                         self.showSheet.toggle()
                     }) {
                         Image(systemName: "person.crop.circle.badge.checkmark")
+                            .foregroundColor(self.toUID == nil ? .blue : .red)
                     }.padding()
                 }
                 
@@ -107,14 +96,15 @@ struct chatView: View {
                 
             }
             .padding([.horizontal])
+            
+            Spacer()
+                .frame(height: self.value)
+
         }
-        .offset(y: -self.value)
         .animation(.spring())
         .onAppear(perform: {
-            self.forKeyboard()
-        })
-        .onAppear(perform: {
             print("onAppear")
+            self.forKeyboard()
             self.isScrolling = false
             self.toUID = nil
         })
@@ -129,6 +119,21 @@ struct chatView: View {
             self.datas.news = 0
         }
         .sheet(isPresented: self.$showSheet) { CustomActionSheet(toUID: self.$toUID, groupID: self.groupID, author: self.author) }
+        .actionSheet(isPresented: self.$showActionSheet) { ActionSheet(title: Text(self.getMesText(id: self.choosenID)), message: nil, buttons:
+            self.user.user != nil && self.choosenFromUID == self.user.user!.uid ? [
+                .default(Text("Copy")) { UIPasteboard.general.string = self.getMesText(id: self.choosenID) },
+                .default(Text("Rewrite")) {
+                    self.choosen = self.choosenID
+                    self.msg = self.getMesText(id: self.choosenID)
+                },
+                .default(Text("Delete")) { self.deleteData(id: self.choosenID) },
+                .cancel()
+            ] : [
+                .default(Text("Copy")) { UIPasteboard.general.string = self.getMesText(id: self.choosenID) },
+                .cancel()
+            ])
+        }
+        
     }
     
     // write a new data on firestore
@@ -154,7 +159,7 @@ struct chatView: View {
                 }
                 self.isAdded = true
                 self.msg = ""
-                self.toUID = nil
+                //self.toUID = nil
             }
         }
     }
@@ -207,13 +212,22 @@ struct chatView: View {
             let value = noti.userInfo![UIResponder.keyboardFrameEndUserInfoKey] as! CGRect
             let height = value.height
             
-            self.value = height - 30.0
+            self.value = height - self.user.tabViewHeight
         }
         
         NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { (noti) in
             
             self.value = 0
         }
+    }
+    
+    func getMesText(id: String) -> String {
+        for item in self.datas.data {
+            if item.id == id {
+                return item.msg
+            }
+        }
+        return ""
     }
 }
 
@@ -234,6 +248,7 @@ struct groupsView: View {
                             groupBubble(message: i.messages, name: i.name)
                                 .contextMenu{
                                   if self.user.user != nil {
+                                    Text("id: \(i.id)")
                                       Button(action: { self.deleteGroup(id: i.id) }) {
                                           HStack(spacing: 12) {
                                             Text("Leave group")
@@ -242,7 +257,7 @@ struct groupsView: View {
                                       }
                                   }
                                 }
-                            NavigationLink(destination: chatView(datas: i.messages, groupID: i.id, author: i.author).navigationBarTitle("\(i.name)")) {
+                            NavigationLink(destination: chatView(datas: i.messages, groupID: i.id, author: i.author).navigationBarTitle("\(i.name)", displayMode: .inline)) {
                                 EmptyView()
                             }
                         }
@@ -385,7 +400,7 @@ struct createView: View {
                 self.id = ""
             }) {
                 Text("Enter")
-                    .font(.body)
+                    .font(.system(size: 25))
             }
         }
         .onAppear(perform: {
@@ -422,23 +437,28 @@ struct mainView: View {
     @State var selectedView = 1
     
     var body: some View {
-        TabView(selection: $selectedView) {
-            createView(datas: self.datas).tabItem {
-                Image(systemName: "person.3.fill")
-                Text("New group")
-            }.tag(0)
-            NavigationView {
-                groupsView(datas: self.datas).navigationBarTitle("Chats")
-            }.tabItem {
-                Image(systemName: "bubble.left.and.bubble.right.fill")
-                Text("Chats")
-            }.tag(1)
-            NavigationView {
-                optionsView(datas: self.datas, username: self.user.user!.username).navigationBarTitle("Options")
-            }.tabItem {
-                Image(systemName: "gear")
-                Text("Options")
-            }.tag(2)
+        GeometryReader { geometry in
+            TabView(selection: self.$selectedView) {
+                createView(datas: self.datas).tabItem {
+                    Image(systemName: "person.3.fill")
+                    Text("New group")
+                }.tag(0)
+                NavigationView {
+                    groupsView(datas: self.datas).navigationBarTitle("Chats")
+                }.tabItem {
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                    Text("Chats")
+                }.tag(1)
+                NavigationView {
+                    optionsView(datas: self.datas, username: self.user.user!.username).navigationBarTitle("Options")
+                }.tabItem {
+                    Image(systemName: "gear")
+                    Text("Options")
+                }.tag(2)
+            }
+            .onAppear {
+                self.user.tabViewHeight = UIScreen.main.bounds.size.height - geometry.size.height
+            }
         }
     }
     

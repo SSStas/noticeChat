@@ -48,7 +48,7 @@ class observer : ObservableObject{
                     }
                     
                     let msgData = datatype(id: i.document.documentID, fromUID: from, date: date as Date, msg: i.document.get("msg") as! String, type: i.document.get("type") as? String ?? "ma")
-                    self.data.append(msgData)
+                    self.data.insert(msgData, at: 0)
                     
                     if date > lastDate && from != uid {
                         self.news += 1
@@ -105,12 +105,20 @@ class observer : ObservableObject{
         m - simple text message
         i - image message
  */
-struct datatype: Identifiable {
+class datatype: Identifiable, ObservableObject {
     var id: String
     var fromUID: String
     var date: Date
-    var msg : String
-    var type: String
+    @Published var msg : String
+    @Published var type: String
+    
+    init(id: String, fromUID: String, date: Date, msg: String, type: String) {
+        self.id = id
+        self.fromUID = fromUID
+        self.date = date
+        self.msg = msg
+        self.type = type
+    }
 }
 
 
@@ -162,7 +170,7 @@ class groupObserver : ObservableObject {
     
     func sorting() {
         print("sorting")
-        self.data.sort(by: {($0.messages.data.last?.date ?? Date()) < ($1.messages.data.last?.date ?? Date())})
+        self.data.sort(by: {($0.messages.data.first?.date ?? Date()) < ($1.messages.data.first?.date ?? Date())})
     }
     
     func unbind() {

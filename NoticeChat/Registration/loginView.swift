@@ -62,7 +62,7 @@ struct loginView: View {
                     self.signIn()
                 }){
                     Text("Enter")
-                        .font(.system(size: 20))
+                        .font(.system(size: 25))
                 }
                 
                 HStack {
@@ -72,8 +72,10 @@ struct loginView: View {
                     }
                 }
                 
+                Spacer()
+                    .frame(height: self.value)
+                
             }
-            .offset(y: -self.value)
             .animation(.spring())
             .onAppear(perform: {
                 self.forKeyboard()
@@ -93,11 +95,5 @@ struct loginView: View {
             
             self.value = 0
         }
-    }
-}
-
-struct loginView_Previews: PreviewProvider {
-    static var previews: some View {
-        loginView()
     }
 }

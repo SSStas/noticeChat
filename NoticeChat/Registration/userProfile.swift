@@ -19,6 +19,7 @@ class userProfile: ObservableObject {
         }
     }
     var handle: AuthStateDidChangeListenerHandle?
+    var tabViewHeight: CGFloat = 70.0
     
     func listen() {
         handle = Auth.auth().addStateDidChangeListener({ (auth, user) in
@@ -27,7 +28,6 @@ class userProfile: ObservableObject {
                 let db = Firestore.firestore().collection("users").document(userID)
                 db.getDocument { (snap, err) in
                     if err != nil {
-                        self.user = nil
                         print("*** LOCAL ERROR *** \n\(err!.localizedDescription)")
                         return
                     }
@@ -35,7 +35,6 @@ class userProfile: ObservableObject {
                     if let doc = snap {
                         self.user = User(uid: user.uid, email: user.email, username: doc.get("username") as? String ?? "")
                     } else {
-                        self.user = nil
                         print("Document does not exist")
                     }
                 }

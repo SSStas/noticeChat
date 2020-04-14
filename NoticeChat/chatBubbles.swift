@@ -11,7 +11,7 @@ import FirebaseFirestore
 
 struct textBubble: View {
     @EnvironmentObject var user: userProfile
-    @State var data: datatype
+    @ObservedObject var data: datatype
     @Binding var groupID: String
     @State var isMarked: Bool
     @State var name: String = "§ User does not found"
@@ -64,7 +64,7 @@ struct textBubble: View {
                 Spacer()
             }
         }
-        .padding(.horizontal)
+        //.padding(.horizontal)
         .padding(.vertical, 3.0)
         .onAppear(perform: {
             if self.data.type[1] == "n" && self.user.user != nil && self.user.user!.uid != self.data.fromUID {
@@ -117,13 +117,13 @@ struct groupBubble: View {
                     .multilineTextAlignment(.leading)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 Spacer()
-                Text("\(self.getTime(date: self.message.data.last?.date))")
+                Text("\(self.getTime(date: self.message.data.first?.date))")
                 .multilineTextAlignment(.trailing)
                 .font(.subheadline)
             }
             Spacer()
             HStack {
-                Text("\(self.getUpdateText(message: self.message.data.last))")
+                Text("\(self.getUpdateText(message: self.message.data.first))")
                     .multilineTextAlignment(.leading)
                     .font(.subheadline)
                 Spacer()
@@ -149,7 +149,7 @@ struct groupBubble: View {
         let db = Firestore.firestore().collection("users").document("\(message!.fromUID)")
         db.getDocument { (doc, err) in
             if let document = doc, document.exists {
-                let name = document.get("username") as! String
+                let name = message!.fromUID == self.user.user?.uid ? "Ты" : document.get("username") as! String
                 if message!.type[0] == "m" {
                     if message!.msg.count > 50 {
                         self.text = name + ": " + String(message!.msg.prefix(50)) + "..."
